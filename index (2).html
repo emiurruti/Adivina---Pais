@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>¡Adivina el País Mundialista!</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Fredoka:wght@500;600;700&display=swap');
+
+:root{
+  --verde:#1aa05a; --verde-osc:#0d7a3f; --amarillo:#ffd83d; --naranja:#ff8c2b;
+  --azul:#1e6fd9; --rojo:#ef4444; --celeste:#3bc9f4;
+  --panel:#ffffff; --texto:#1c3b2e; --gris:#6b7b76;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:'Fredoka',sans-serif;
+  background:linear-gradient(160deg,#bdf3d2 0%,#9fe8c8 40%,#7fd9c8 100%);
+  min-height:100vh; color:var(--texto); overflow-x:hidden;
+}
+.hexpattern{
+  position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.12;
+  background-image: radial-gradient(circle, #0d7a3f 2px, transparent 2.5px);
+  background-size: 38px 38px;
+}
+
+.pantalla{display:none; min-height:100vh; flex-direction:column; align-items:center; justify-content:center; padding:24px; position:relative; z-index:1;}
+.pantalla.activa{display:flex;}
+
+#p-inicio{text-align:center;}
+.balon-gigante{font-size:90px; animation:girar-balon 5s linear infinite; margin-bottom:6px; filter:drop-shadow(0 8px 16px rgba(0,0,0,.15));}
+@keyframes girar-balon{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+.titulo-juego{
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:46px; line-height:1.05;
+  color:var(--verde-osc); text-shadow: 3px 3px 0 var(--amarillo);
+  margin-bottom:6px;
+}
+.subtitulo-juego{font-size:16px; color:var(--azul); font-weight:600; letter-spacing:1px; margin-bottom:6px;}
+.mundial-badge{
+  display:inline-block; background:var(--naranja); color:#fff; font-weight:700; font-size:13px;
+  padding:6px 18px; border-radius:30px; margin-bottom:28px; box-shadow:0 4px 0 #c9651a;
+  animation:pulso-badge 1.8s ease-in-out infinite;
+}
+@keyframes pulso-badge{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+
+.banderitas-flotantes{display:flex; gap:18px; margin-bottom:28px; font-size:40px;}
+.banderitas-flotantes span{animation:flotar-bandera 3s ease-in-out infinite; display:inline-block;}
+.banderitas-flotantes span:nth-child(2){animation-delay:.5s;}
+.banderitas-flotantes span:nth-child(3){animation-delay:1s;}
+.banderitas-flotantes span:nth-child(4){animation-delay:1.5s;}
+@keyframes flotar-bandera{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-12px) rotate(-4deg);}}
+
+.intro-card{
+  background:var(--panel); border-radius:24px; padding:22px 28px; max-width:480px;
+  box-shadow:0 10px 0 #cfe8d8, 0 14px 30px rgba(0,0,0,.08); margin-bottom:30px;
+  border:3px dashed var(--verde);
+}
+.intro-card p{font-size:14.5px; line-height:1.8; color:var(--texto);}
+.intro-card strong{color:var(--verde-osc);}
+
+.btn-grande{
+  font-family:'Baloo 2',sans-serif; font-weight:700; font-size:20px; color:#fff;
+  background:linear-gradient(180deg, var(--verde) 0%, var(--verde-osc) 100%);
+  border:none; border-radius:50px; padding:18px 56px; cursor:pointer;
+  box-shadow:0 6px 0 #0a5e30, 0 10px 20px rgba(0,0,0,.15);
+  transition:transform .15s, box-shadow .15s; letter-spacing:1px;
+}
+.btn-grande:hover{transform:translateY(-3px); box-shadow:0 9px 0 #0a5e30, 0 14px 24px rgba(0,0,0,.18);}
+.btn-grande:active{transform:translateY(2px); box-shadow:0 3px 0 #0a5e30;}
+
+.niveles-preview{display:flex; gap:12px; margin-top:34px; flex-wrap:wrap; justify-content:center;}
+.nivel-chip{
+  background:var(--panel); border-radius:16px; padding:10px 16px; text-align:center;
+  box-shadow:0 4px 0 #cfe8d8; font-size:11px; color:var(--gris); font-weight:600; min-width:84px;
+}
+.nivel-chip .num{display:block; font-family:'Baloo 2',sans-serif; font-size:20px; color:var(--verde-osc); margin-bottom:2px;}
+
+#hud{
+  display:none; width:100%; max-width:760px; align-items:center; justify-content:space-between;
+  background:var(--panel); border-radius:20px; padding:14px 22px; margin-bottom:18px;
+  box-shadow:0 6px 0 #cfe8d8; position:sticky; top:10px; z-index:50; flex-wrap:wrap; gap:10px;
+}
+.hud-izq{display:flex; align-items:center; gap:10px;}
+.hud-nivel-badge{
+  background:var(--amarillo); color:var(--verde-osc); font-weight:700; font-size:13px;
+  padding:6px 14px; border-radius:20px; font-family:'Baloo 2',sans-serif;
+}
+.hud-dots{display:flex; gap:5px;}
+.hdot{width:9px; height:9px; border-radius:50%; background:#dde8e2;}
+.hdot.done{background:var(--verde);}
+.hdot.act{background:var(--naranja); box-shadow:0 0 0 3px rgba(255,140,43,.25);}
+
+.hud-der{display:flex; align-items:center; gap:18px;}
+.vidas-balones{display:flex; gap:4px; font-size:22px;}
+.vidas-balones span.usado{opacity:.2; filter:grayscale(1);}
+.puntaje-hud{font-family:'Baloo 2',sans-serif; font-size:22px; color:var(--azul); display:flex; align-items:center; gap:5px;}
+
+#area-juego{display:none; width:100%; max-width:760px; flex-direction:column; align-items:center;}
+
+.nivel-titulo-card{text-align:center; margin-bottom:18px;}
+.nivel-eyebrow{font-size:12px; color:var(--naranja); font-weight:700; letter-spacing:2px; margin-bottom:4px;}
+.nivel-h2{font-family:'Baloo 2',sans-serif; font-size:26px; color:var(--verde-osc); margin-bottom:6px;}
+.nivel-desc{font-size:13px; color:var(--gris); max-width:480px; margin:0 auto; line-height:1.6;}
+
+.cancha-card{
+  background:var(--panel); border-radius:24px; padding:30px 26px; width:100%;
+  box-shadow:0 8px 0 #cfe8d8, 0 16px 30px rgba(0,0,0,.06); position:relative; overflow:hidden;
+  border:3px solid #eaf6ee;
+}
+.cancha-lineas{position:absolute; inset:0; opacity:.05; background:
+  repeating-linear-gradient(90deg, var(--verde) 0 2px, transparent 2px 80px);
+  pointer-events:none;}
+
+.mascota-pista{
+  display:flex; align-items:flex-start; gap:14px; background:#f3fdf6; border-radius:16px;
+  padding:14px 18px; margin-bottom:22px; border:2px dashed var(--verde);
+}
+.mascota-emoji{font-size:36px; animation:rebote-mascota 2s ease-in-out infinite;}
+@keyframes rebote-mascota{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+.mascota-texto{font-size:14px; line-height:1.7; color:var(--texto); flex:1;}
+.mascota-texto strong{color:var(--verde-osc);}
+.pista-num{display:inline-block; background:var(--amarillo); color:var(--verde-osc); font-weight:700; font-size:11px; padding:2px 9px; border-radius:10px; margin-right:6px;}
+
+.palabra-display{
+  display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:26px 0; min-height:60px;
+}
+.letra-slot{
+  width:42px; height:52px; display:flex; align-items:center; justify-content:center;
+  font-family:'Baloo 2',sans-serif; font-size:26px; font-weight:700; color:var(--verde-osc);
+  border-bottom:5px solid var(--verde); background:#f3fdf6; border-radius:8px 8px 0 0;
+  transition:all .25s;
+}
+.letra-slot.espacio{border-bottom:none; background:transparent; width:20px;}
+.letra-slot.revelada{animation:rebote-letra .4s ease;}
+@keyframes rebote-letra{0%{transform:scale(0.5) translateY(15px); opacity:0;}60%{transform:scale(1.15) translateY(-4px);}100%{transform:scale(1) translateY(0); opacity:1;}}
+
+.teclado{display:flex; flex-wrap:wrap; gap:7px; justify-content:center; margin-top:16px;}
+.tecla{
+  width:38px; height:42px; border-radius:10px; border:none; cursor:pointer;
+  font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px;
+  background:var(--azul); color:#fff; box-shadow:0 3px 0 #144d99;
+  transition:all .15s;
+}
+.tecla:hover:not(:disabled){transform:translateY(-2px); box-shadow:0 5px 0 #144d99;}
+.tecla:active:not(:disabled){transform:translateY(1px); box-shadow:0 1px 0 #144d99;}
+.tecla:disabled{cursor:not-allowed;}
+.tecla.correcta{background:var(--verde); box-shadow:0 3px 0 #0a5e30; color:#fff;}
+.tecla.incorrecta{background:#d8d8d8; box-shadow:0 3px 0 #aaa; color:#999; animation:shake-tecla .35s ease;}
+@keyframes shake-tecla{0%,100%{transform:translateX(0);}25%{transform:translateX(-4px);}75%{transform:translateX(4px);}}
+
+.barra-acciones{display:flex; gap:12px; justify-content:center; margin-top:22px; flex-wrap:wrap;}
+.btn-pista{
+  font-family:'Fredoka',sans-serif; font-weight:600; font-size:13px; color:var(--verde-osc);
+  background:#fff7d6; border:2px solid var(--amarillo); border-radius:30px; padding:10px 20px;
+  cursor:pointer; transition:all .2s;
+}
+.btn-pista:hover:not(:disabled){background:var(--amarillo); transform:translateY(-2px);}
+.btn-pista:disabled{opacity:.4; cursor:not-allowed;}
+
+.feedback-ronda{
+  display:none; margin-top:20px; padding:16px 20px; border-radius:16px; text-align:center;
+  font-size:14px; line-height:1.7; animation:aparecer-fb .3s ease;
+}
+@keyframes aparecer-fb{from{opacity:0; transform:translateY(8px);}to{opacity:1; transform:translateY(0);}}
+.feedback-ronda.ok{background:#e6fbef; border:2px solid var(--verde); color:var(--verde-osc);}
+.feedback-ronda.fail{background:#fdeaea; border:2px solid var(--rojo); color:#a32424;}
+.feedback-ronda .pais-bandera-grande{font-size:50px; display:block; margin-bottom:8px;}
+
+.btn-continuar{
+  margin-top:16px; font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px; color:#fff;
+  background:linear-gradient(180deg, var(--naranja), #d96e10); border:none; border-radius:40px;
+  padding:13px 40px; cursor:pointer; box-shadow:0 5px 0 #a8530a; display:none;
+}
+.btn-continuar:hover{transform:translateY(-2px);}
+
+.ronda-progress{display:flex; gap:6px; justify-content:center; margin-bottom:18px;}
+.rdot{width:26px; height:6px; border-radius:4px; background:#dde8e2;}
+.rdot.done{background:var(--verde);}
+.rdot.act{background:var(--naranja);}
+
+#p-transicion{text-align:center;}
+.trans-balon{font-size:70px; animation:girar-balon 1.5s linear infinite; margin-bottom:14px;}
+.trans-nivel-num{font-family:'Baloo 2',sans-serif; font-size:52px; color:var(--verde-osc); font-weight:800;}
+.trans-nivel-tit{font-size:16px; color:var(--azul); font-weight:600; letter-spacing:2px; margin-top:6px;}
+.trans-barra{width:240px; height:10px; background:#dde8e2; border-radius:6px; margin:26px auto 0; overflow:hidden;}
+.trans-barra-fill{height:100%; background:var(--naranja); border-radius:6px; animation:cargar-barra 1.8s linear forwards;}
+@keyframes cargar-barra{from{width:0;}to{width:100%;}}
+
+#p-victoria{text-align:center;}
+.trofeo-grande{font-size:90px; animation:rebote-trofeo 1s ease-in-out infinite;}
+@keyframes rebote-trofeo{0%,100%{transform:translateY(0) scale(1);}50%{transform:translateY(-16px) scale(1.05);}}
+.victoria-titulo{font-family:'Baloo 2',sans-serif; font-size:38px; color:var(--verde-osc); font-weight:800; margin:10px 0 4px;}
+.victoria-sub{font-size:14px; color:var(--azul); font-weight:600; margin-bottom:26px;}
+.estrellas-final{font-size:40px; letter-spacing:6px; margin-bottom:24px;}
+.stats-final{display:flex; gap:16px; flex-wrap:wrap; justify-content:center; margin-bottom:30px;}
+.stat-box{background:var(--panel); border-radius:16px; padding:16px 26px; box-shadow:0 5px 0 #cfe8d8; text-align:center;}
+.stat-num{font-family:'Baloo 2',sans-serif; font-size:30px; color:var(--verde-osc);}
+.stat-lab{font-size:10px; color:var(--gris); font-weight:600; letter-spacing:1px;}
+
+#p-derrota{text-align:center;}
+.triste-balon{font-size:80px; margin-bottom:14px;}
+.derrota-titulo{font-family:'Baloo 2',sans-serif; font-size:30px; color:var(--rojo); font-weight:800; margin-bottom:8px;}
+.derrota-texto{font-size:14px; color:var(--gris); margin-bottom:26px; line-height:1.7;}
+
+#canvas-confeti{position:fixed; top:0; left:0; pointer-events:none; z-index:5;}
+
+@media(max-width:560px){
+  .titulo-juego{font-size:32px;}
+  .letra-slot{width:32px; height:42px; font-size:20px;}
+  .tecla{width:32px; height:38px; font-size:14px;}
+  .cancha-card{padding:22px 16px;}
+  .hud-der{gap:10px;}
+}
+</style>
+</head>
+<body>
+<div class="hexpattern"></div>
+<canvas id="canvas-confeti"></canvas>
+
+<div class="pantalla activa" id="p-inicio">
+  <div class="balon-gigante">⚽</div>
+  <h1 class="titulo-juego">¡ADIVINÁ EL<br>PAÍS MUNDIALISTA!</h1>
+  <div class="subtitulo-juego">UN DESAFÍO DE GEOGRAFÍA Y FÚTBOL</div>
+  <div class="mundial-badge">🏆 MUNDIAL 2026 🏆</div>
+
+  <div class="banderitas-flotantes">
+    <span>🇧🇷</span><span>🇯🇵</span><span>🇦🇷</span><span>🇪🇸</span>
+  </div>
+
+  <div class="intro-card">
+    <p>
+      Vas a recibir <strong>pistas</strong> sobre un país que juega el Mundial 2026.
+      Adiviná las letras antes de quedarte sin <strong>balones de vida</strong> ⚽⚽⚽.
+      ¡Hay <strong>5 niveles</strong>, cada uno más difícil que el anterior!
+    </p>
+  </div>
+
+  <button class="btn-grande" onclick="iniciarJuego()">▶ ¡JUGAR AHORA!</button>
+
+  <div class="niveles-preview">
+    <div class="nivel-chip"><span class="num">1</span>FÁCIL</div>
+    <div class="nivel-chip"><span class="num">2</span>NORMAL</div>
+    <div class="nivel-chip"><span class="num">3</span>MEDIO</div>
+    <div class="nivel-chip"><span class="num">4</span>DIFÍCIL</div>
+    <div class="nivel-chip"><span class="num">5</span>EXPERTO</div>
+  </div>
+</div>
+
+<div class="pantalla" id="p-transicion">
+  <div class="trans-balon">⚽</div>
+  <div class="trans-nivel-num" id="trans-num">NIVEL 1</div>
+  <div class="trans-nivel-tit" id="trans-tit">FÁCIL</div>
+  <div class="trans-barra"><div class="trans-barra-fill"></div></div>
+</div>
+
+<div style="width:100%; max-width:760px; display:flex; flex-direction:column; align-items:center; z-index:1;">
+  <div id="hud">
+    <div class="hud-izq">
+      <div class="hud-nivel-badge" id="hud-nivel-badge">NIVEL 1</div>
+      <div class="hud-dots">
+        <div class="hdot" id="nd1"></div><div class="hdot" id="nd2"></div>
+        <div class="hdot" id="nd3"></div><div class="hdot" id="nd4"></div><div class="hdot" id="nd5"></div>
+      </div>
+    </div>
+    <div class="hud-der">
+      <div class="vidas-balones" id="vidas-balones"></div>
+      <div class="puntaje-hud">⭐ <span id="puntaje-num">0</span></div>
+    </div>
+  </div>
+
+  <div class="pantalla" id="p-juego" style="padding:0;">
+    <div id="area-juego" style="display:flex;">
+      <div class="nivel-titulo-card">
+        <div class="nivel-eyebrow" id="nivel-eyebrow">NIVEL 1 · FÁCIL</div>
+        <h2 class="nivel-h2" id="nivel-h2-txt">⚽ PAÍSES CONOCIDOS</h2>
+        <p class="nivel-desc" id="nivel-desc-txt">Países muy famosos del Mundial, con varias pistas para ayudarte</p>
+      </div>
+
+      <div class="ronda-progress" id="ronda-progress"></div>
+
+      <div class="cancha-card">
+        <div class="cancha-lineas"></div>
+
+        <div class="mascota-pista">
+          <div class="mascota-emoji">🦉</div>
+          <div class="mascota-texto" id="texto-pistas"></div>
+        </div>
+
+        <div class="palabra-display" id="palabra-display"></div>
+
+        <div class="teclado" id="teclado"></div>
+
+        <div class="barra-acciones">
+          <button class="btn-pista" id="btn-pista-extra" onclick="usarPistaExtra()">💡 Pista extra (-20 pts)</button>
+        </div>
+
+        <div class="feedback-ronda" id="feedback-ronda"></div>
+        <div style="text-align:center;">
+          <button class="btn-continuar" id="btn-continuar" onclick="siguienteRonda()">SIGUIENTE PAÍS ▶</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pantalla" id="p-victoria">
+  <div class="trofeo-grande">🏆</div>
+  <h2 class="victoria-titulo">¡SOS UN CRACK MUNDIALISTA!</h2>
+  <div class="victoria-sub">COMPLETASTE LOS 5 NIVELES</div>
+  <div class="estrellas-final" id="estrellas-final"></div>
+  <div class="stats-final">
+    <div class="stat-box"><div class="stat-num" id="stat-puntaje">0</div><div class="stat-lab">PUNTOS</div></div>
+    <div class="stat-box"><div class="stat-num" id="stat-paises">0</div><div class="stat-lab">PAÍSES ADIVINADOS</div></div>
+    <div class="stat-box"><div class="stat-num" id="stat-vidas">0</div><div class="stat-lab">BALONES RESTANTES</div></div>
+  </div>
+  <button class="btn-grande" onclick="location.reload()">↺ JUGAR DE NUEVO</button>
+</div>
+
+<div class="pantalla" id="p-derrota">
+  <div class="triste-balon">😢⚽</div>
+  <h2 class="derrota-titulo">¡SE TERMINARON LOS BALONES!</h2>
+  <p class="derrota-texto">No te preocupes, ¡todos los grandes futbolistas practican mucho!<br>Volvé a intentarlo, vas a llegar más lejos.</p>
+  <button class="btn-grande" onclick="location.reload()">↺ INTENTAR DE NUEVO</button>
+</div>
+
+<script>
+const NIVELES = [
+  {
+    nombre: "FÁCIL", emoji:"⚽", desc:"Países muy famosos del Mundial, con varias pistas para ayudarte",
+    numPistasIniciales: 3,
+    paises: [
+      {pais:"BRASIL", bandera:"🇧🇷", pistas:["Es el país que más Mundiales ganó en la historia","Su selección usa camiseta amarilla y verde","Tiene la estatua del Cristo Redentor","Hablan portugués en este país"]},
+      {pais:"ARGENTINA", bandera:"🇦🇷", pistas:["Lionel Messi nació en este país","Su capital es Buenos Aires","Ganó el Mundial en 2022","Es vecino de Uruguay y Chile"]},
+      {pais:"ESPANA", bandera:"🇪🇸", pistas:["Es un país de Europa con playas hermosas","Su comida típica es la paella","Su capital es Madrid","Ganó el Mundial en 2010"]},
+      {pais:"FRANCIA", bandera:"🇫🇷", pistas:["Tiene la Torre Eiffel","Mbappé juega para esta selección","Su capital es París","Ganó el Mundial en 2018"]},
+      {pais:"MEXICO", bandera:"🇲🇽", pistas:["Es uno de los países que organiza el Mundial 2026","Tiene pirámides muy antiguas","Su comida típica son los tacos","Está en América del Norte, cerca de Estados Unidos"]}
+    ]
+  },
+  {
+    nombre:"NORMAL", emoji:"🥈", desc:"Selecciones reconocidas, con pistas un poco más desafiantes",
+    numPistasIniciales:3,
+    paises:[
+      {pais:"ALEMANIA", bandera:"🇩🇪", pistas:["Ha ganado 4 Mundiales","Es muy conocida por su industria de autos","Su capital es Berlín","Su bandera tiene los colores negro, rojo y amarillo"]},
+      {pais:"INGLATERRA", bandera:"🏴", pistas:["Es la cuna del fútbol moderno","Su capital es Londres","Ganó el Mundial en 1966","Tiene un reloj famoso llamado Big Ben"]},
+      {pais:"PORTUGAL", bandera:"🇵🇹", pistas:["Cristiano Ronaldo nació en este país","Está al lado de España","Su capital es Lisboa","Hablan portugués, igual que en Brasil"]},
+      {pais:"JAPON", bandera:"🇯🇵", pistas:["Es un país de Asia formado por muchas islas","Es famoso por el anime y el sushi","Su capital es Tokio","Su bandera es blanca con un círculo rojo"]},
+      {pais:"URUGUAY", bandera:"🇺🇾", pistas:["Ganó el primer Mundial de la historia en 1930","Es un país pequeño de Sudamérica","Su capital es Montevideo","Es vecino de Argentina y Brasil"]}
+    ]
+  },
+  {
+    nombre:"MEDIO", emoji:"🥉", desc:"Selecciones que no son tan populares, con menos pistas",
+    numPistasIniciales:2,
+    paises:[
+      {pais:"MARRUECOS", bandera:"🇲🇦", pistas:["Llegó a semifinales del Mundial 2022, algo histórico para África","Está en el norte de África","Su capital es Rabat"]},
+      {pais:"COREA DEL SUR", bandera:"🇰🇷", pistas:["Es un país de Asia muy avanzado en tecnología","Su capital es Seúl","Es vecino de Corea del Norte"]},
+      {pais:"SENEGAL", bandera:"🇸🇳", pistas:["Está en el oeste de África","Su capital es Dakar","Su selección es apodada los Leones de Teranga"]},
+      {pais:"CROACIA", bandera:"🇭🇷", pistas:["Quedó segunda en el Mundial 2018","Está en Europa, cerca del mar Adriático","Su capital es Zagreb"]},
+      {pais:"AUSTRALIA", bandera:"🇦🇺", pistas:["Es un país-continente con canguros","Su capital es Canberra","Está rodeado completamente por océanos"]}
+    ]
+  },
+  {
+    nombre:"DIFICIL", emoji:"🔥", desc:"Países menos conocidos en el fútbol mundial, pocas pistas",
+    numPistasIniciales:2,
+    paises:[
+      {pais:"GHANA", bandera:"🇬🇭", pistas:["Está en África Occidental","Fue el primer país africano subsahariano en independizarse"]},
+      {pais:"TUNEZ", bandera:"🇹🇳", pistas:["Está en el norte de África, junto al mar Mediterráneo","Su capital es Túnez"]},
+      {pais:"ECUADOR", bandera:"🇪🇨", pistas:["La línea del Ecuador atraviesa este país","Su capital es Quito"]},
+      {pais:"SUIZA", bandera:"🇨🇭", pistas:["Es famosa por sus relojes y montañas","Su bandera tiene una cruz blanca sobre fondo rojo"]},
+      {pais:"PANAMA", bandera:"🇵🇦", pistas:["Tiene un canal muy famoso que conecta dos océanos","Está en América Central"]}
+    ]
+  },
+  {
+    nombre:"EXPERTO", emoji:"👑", desc:"El desafío final: muy pocas pistas para los verdaderos cracks",
+    numPistasIniciales:1,
+    paises:[
+      {pais:"QATAR", bandera:"🇶🇦", pistas:["Organizó el Mundial anterior, en 2022","Es un país pequeño y muy rico de Medio Oriente"]},
+      {pais:"COSTA RICA", bandera:"🇨🇷", pistas:["Está en América Central y es famosa por su naturaleza","No tiene ejército desde 1948"]},
+      {pais:"IRAN", bandera:"🇮🇷", pistas:["Está en el continente asiático, en Medio Oriente","Antes se llamaba Persia"]},
+      {pais:"CAMERUN", bandera:"🇨🇲", pistas:["Está en África Central y es apodada los Leones Indomables","Su bandera tiene una estrella amarilla"]},
+      {pais:"JAMAICA", bandera:"🇯🇲", pistas:["Es una isla del Caribe famosa por el reggae","Tiene los corredores más rápidos del mundo"]}
+    ]
+  }
+];
+
+const ALFABETO = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+const G = {
+  nivelIdx: 0,
+  rondaIdx: 0,
+  vidas: 3,
+  puntaje: 0,
+  paisesAdivinados: 0,
+  letrasReveladas: [],
+  letrasUsadas: [],
+  pistasMostradas: 1,
+  errores: 0,
+  rondaTerminada: false,
+  pistaExtraUsada: false
+};
+
+function normalizar(str){
+  return str.toUpperCase()
+    .replace(/Á/g,"A").replace(/É/g,"E").replace(/Í/g,"I").replace(/Ó/g,"O").replace(/Ú/g,"U").replace(/Ñ/g,"N");
+}
+
+function mostrarPantalla(id){
+  document.querySelectorAll(".pantalla").forEach(p=>p.classList.remove("activa"));
+  document.getElementById(id).classList.add("activa");
+}
+
+function iniciarJuego(){
+  document.getElementById("hud").style.display="flex";
+  prepararTransicion(0, ()=>{
+    mostrarPantalla("p-juego");
+    iniciarRonda();
+  });
+}
+
+function prepararTransicion(nivelIdx, callback){
+  const niv = NIVELES[nivelIdx];
+  document.getElementById("trans-num").textContent = "NIVEL " + (nivelIdx+1);
+  document.getElementById("trans-tit").textContent = niv.emoji + " " + niv.nombre;
+  const fill = document.querySelector(".trans-barra-fill");
+  fill.style.animation = "none";
+  void fill.offsetWidth;
+  fill.style.animation = "cargar-barra 1.8s linear forwards";
+  mostrarPantalla("p-transicion");
+  setTimeout(function(){ callback(); }, 1900);
+}
+
+function actualizarHUD(){
+  document.getElementById("hud-nivel-badge").textContent = "NIVEL " + (G.nivelIdx+1);
+  document.getElementById("puntaje-num").textContent = G.puntaje;
+
+  for(let i=1;i<=5;i++){
+    const dot = document.getElementById("nd"+i);
+    dot.className = "hdot";
+    if(i-1 < G.nivelIdx) dot.classList.add("done");
+    else if(i-1 === G.nivelIdx) dot.classList.add("act");
+  }
+
+  const vidasCont = document.getElementById("vidas-balones");
+  vidasCont.innerHTML = "";
+  for(let i=0;i<3;i++){
+    const s = document.createElement("span");
+    s.textContent = "⚽";
+    if(i >= G.vidas) s.classList.add("usado");
+    vidasCont.appendChild(s);
+  }
+}
+
+function actualizarRondaProgress(){
+  const niv = NIVELES[G.nivelIdx];
+  const cont = document.getElementById("ronda-progress");
+  cont.innerHTML = "";
+  niv.paises.forEach(function(_, i){
+    const d = document.createElement("div");
+    d.className = "rdot";
+    if(i < G.rondaIdx) d.classList.add("done");
+    else if(i === G.rondaIdx) d.classList.add("act");
+    cont.appendChild(d);
+  });
+}
+
+function iniciarRonda(){
+  const niv = NIVELES[G.nivelIdx];
+  const datoPais = niv.paises[G.rondaIdx];
+
+  G.letrasReveladas = [];
+  G.letrasUsadas = [];
+  G.pistasMostradas = niv.numPistasIniciales;
+  G.errores = 0;
+  G.rondaTerminada = false;
+  G.pistaExtraUsada = false;
+
+  document.getElementById("nivel-eyebrow").textContent = "NIVEL " + (G.nivelIdx+1) + " · " + niv.nombre + " · PAÍS " + (G.rondaIdx+1) + " DE " + niv.paises.length;
+  document.getElementById("nivel-h2-txt").textContent = niv.emoji + " " + niv.nombre;
+  document.getElementById("nivel-desc-txt").textContent = niv.desc;
+
+  document.getElementById("feedback-ronda").style.display = "none";
+  document.getElementById("feedback-ronda").className = "feedback-ronda";
+  document.getElementById("btn-continuar").style.display = "none";
+  document.getElementById("btn-pista-extra").disabled = false;
+  document.getElementById("btn-pista-extra").textContent = "💡 Pista extra (-20 pts)";
+
+  actualizarHUD();
+  actualizarRondaProgress();
+  renderPistas();
+  renderPalabra();
+  renderTeclado();
+}
+
+function renderPistas(){
+  const niv = NIVELES[G.nivelIdx];
+  const datoPais = niv.paises[G.rondaIdx];
+  const cont = document.getElementById("texto-pistas");
+  let html = "<strong>¡Adiviná el país!</strong> Acá van tus pistas:<br><br>";
+  for(let i=0; i<G.pistasMostradas && i<datoPais.pistas.length; i++){
+    html += '<span class="pista-num">PISTA ' + (i+1) + '</span> ' + datoPais.pistas[i] + '<br><br>';
+  }
+  cont.innerHTML = html;
+}
+
+function renderPalabra(){
+  const niv = NIVELES[G.nivelIdx];
+  const datoPais = niv.paises[G.rondaIdx];
+  const palabra = normalizar(datoPais.pais);
+  const cont = document.getElementById("palabra-display");
+  cont.innerHTML = "";
+  for(const ch of palabra){
+    const slot = document.createElement("div");
+    if(ch === " "){
+      slot.className = "letra-slot espacio";
+    } else {
+      slot.className = "letra-slot";
+      if(G.letrasReveladas.includes(ch)){
+        slot.textContent = ch;
+        slot.classList.add("revelada");
+      } else {
+        slot.textContent = "";
+      }
+    }
+    cont.appendChild(slot);
+  }
+}
+
+function renderTeclado(){
+  const cont = document.getElementById("teclado");
+  cont.innerHTML = "";
+  ALFABETO.forEach(function(letra){
+    const btn = document.createElement("button");
+    btn.className = "tecla";
+    btn.textContent = letra;
+    btn.onclick = function(){elegirLetra(letra, btn);};
+    if(G.letrasUsadas.includes(letra)){
+      btn.disabled = true;
+      if(G.letrasReveladas.includes(letra)) btn.classList.add("correcta");
+      else btn.classList.add("incorrecta");
+    }
+    cont.appendChild(btn);
+  });
+}
+
+function elegirLetra(letra, btnEl){
+  if(G.rondaTerminada || G.letrasUsadas.includes(letra)) return;
+
+  const niv = NIVELES[G.nivelIdx];
+  const datoPais = niv.paises[G.rondaIdx];
+  const palabra = normalizar(datoPais.pais);
+
+  G.letrasUsadas.push(letra);
+
+  if(palabra.includes(letra)){
+    G.letrasReveladas.push(letra);
+    G.puntaje += 15;
+    btnEl.classList.add("correcta");
+    renderPalabra();
+    actualizarHUD();
+
+    const letrasUnicas = [...new Set(palabra.replace(/ /g,"").split(""))];
+    const completado = letrasUnicas.every(function(l){return G.letrasReveladas.includes(l);});
+    if(completado){
+      ganarRonda();
+      return;
+    }
+  } else {
+    btnEl.classList.add("incorrecta");
+    G.errores++;
+    G.vidas--;
+    actualizarHUD();
+
+    if(G.vidas <= 0){
+      btnEl.disabled = true;
+      setTimeout(mostrarDerrota, 800);
+      return;
+    }
+
+    if(G.errores % 2 === 0 && G.pistasMostradas < datoPais.pistas.length){
+      G.pistasMostradas++;
+      renderPistas();
+    }
+  }
+
+  btnEl.disabled = true;
+}
+
+function usarPistaExtra(){
+  if(G.pistaExtraUsada || G.rondaTerminada) return;
+  const niv = NIVELES[G.nivelIdx];
+  const datoPais = niv.paises[G.rondaIdx];
+
+  if(G.pistasMostradas < datoPais.pistas.length){
+    G.pistasMostradas++;
+    renderPistas();
+  }
+  G.pistaExtraUsada = true;
+  G.puntaje = Math.max(0, G.puntaje - 20);
+  actualizarHUD();
+  document.getElementById("btn-pista-extra").disabled = true;
+  document.getElementById("btn-pista-extra").textContent = "💡 Ya usaste tu pista extra";
+}
+
+function ganarRonda(){
+  G.rondaTerminada = true;
+  G.paisesAdivinados++;
+  G.puntaje += 50;
+  actualizarHUD();
+
+  const niv = NIVELES[G.nivelIdx];
+  const datoPais = niv.paises[G.rondaIdx];
+  const fb = document.getElementById("feedback-ronda");
+  fb.className = "feedback-ronda ok";
+  fb.style.display = "block";
+  fb.innerHTML = '<span class="pais-bandera-grande">' + datoPais.bandera + '</span>¡Muy bien! El país era <strong>' + datoPais.pais + '</strong> 🎉<br>+50 puntos de bonus';
+
+  document.getElementById("btn-continuar").style.display = "inline-block";
+  const esUltimoPaisDelNivel = G.rondaIdx >= niv.paises.length - 1;
+  document.getElementById("btn-continuar").textContent = esUltimoPaisDelNivel ? "AVANZAR DE NIVEL ▶" : "SIGUIENTE PAÍS ▶";
+
+  document.querySelectorAll(".tecla").forEach(function(b){b.disabled=true;});
+}
+
+function siguienteRonda(){
+  const niv = NIVELES[G.nivelIdx];
+  G.rondaIdx++;
+
+  if(G.rondaIdx >= niv.paises.length){
+    G.rondaIdx = 0;
+    G.nivelIdx++;
+
+    if(G.nivelIdx >= NIVELES.length){
+      mostrarVictoria();
+      return;
+    }
+    prepararTransicion(G.nivelIdx, function(){
+      mostrarPantalla("p-juego");
+      iniciarRonda();
+    });
+  } else {
+    iniciarRonda();
+  }
+}
+
+function mostrarVictoria(){
+  document.getElementById("hud").style.display = "none";
+  mostrarPantalla("p-victoria");
+  document.getElementById("stat-puntaje").textContent = G.puntaje;
+  document.getElementById("stat-paises").textContent = G.paisesAdivinados;
+  document.getElementById("stat-vidas").textContent = G.vidas;
+
+  const totalPaises = NIVELES.reduce(function(acc,n){return acc+n.paises.length;},0);
+  const pct = G.paisesAdivinados / totalPaises;
+  document.getElementById("estrellas-final").textContent = pct >= 0.9 ? "⭐⭐⭐" : pct >= 0.6 ? "⭐⭐" : "⭐";
+
+  lanzarConfeti();
+}
+
+function mostrarDerrota(){
+  document.getElementById("hud").style.display = "none";
+  mostrarPantalla("p-derrota");
+}
+
+function lanzarConfeti(){
+  const canvas = document.getElementById("canvas-confeti");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext("2d");
+  const colores = ["#1aa05a","#ffd83d","#ff8c2b","#1e6fd9","#3bc9f4","#ef4444"];
+  const particulas = Array.from({length:160}, function(){
+    return {
+      x: Math.random()*canvas.width,
+      y: Math.random()*canvas.height - canvas.height,
+      w: 7+Math.random()*8,
+      h: 4+Math.random()*5,
+      color: colores[Math.floor(Math.random()*colores.length)],
+      vel: 2+Math.random()*4,
+      ang: Math.random()*Math.PI*2,
+      spin: (Math.random()-0.5)*0.18
+    };
+  });
+
+  function animar(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particulas.forEach(function(p){
+      p.y += p.vel;
+      p.ang += p.spin;
+      if(p.y > canvas.height) p.y = -10;
+      ctx.save();
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.ang);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      ctx.restore();
+    });
+    requestAnimationFrame(animar);
+  }
+  animar();
+}
+
+window.addEventListener("resize", function(){
+  const canvas = document.getElementById("canvas-confeti");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+
+document.addEventListener("keydown", function(e){
+  const letra = e.key.toUpperCase();
+  if(ALFABETO.includes(letra)){
+    const botones = document.querySelectorAll(".tecla");
+    for(const b of botones){
+      if(b.textContent === letra && !b.disabled){
+        b.click();
+        break;
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
